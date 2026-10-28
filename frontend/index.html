@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Detection System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff4444, #ff8844);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card.fire {
+            border-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+        
+        .stat-card.danger {
+            border-color: #ff8844;
+            background: rgba(255, 136, 68, 0.1);
+        }
+        
+        .stat-card.safe {
+            border-color: #44ff88;
+            background: rgba(68, 255, 136, 0.1);
+        }
+        
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .floor-plan {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+        }
+        
+        .floor-plan h2 {
+            margin-bottom: 20px;
+        }
+        
+        .house-svg {
+            width: 100%;
+            height: 700px;
+            background: #0a0a0a;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .card h3 {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .alert-item {
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid #ff4444;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .person-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .person-item.safe {
+            background: rgba(68, 255, 136, 0.1);
+            border-color: #44ff88;
+        }
+        
+        .person-item.outside {
+            background: rgba(68, 136, 255, 0.1);
+            border-color: #4488ff;
+        }
+        
+        .person-item.danger {
+            background: rgba(255, 68, 68, 0.1);
+            border-color: #ff4444;
+        }
+        
+        .person-item.unknown {
+            background: rgba(128, 128, 128, 0.1);
+            border-color: #888;
+        }
+        
+        .person-item.moving {
+            background: rgba(255, 136, 68, 0.2);
+            border-color: #ff8844;
+            animation: moving 1.5s infinite;
+        }
+        
+        @keyframes moving {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .person-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .escape-route {
+            font-size: 0.85em;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            margin-top: 8px;
+        }
+        
+        .route-path {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+        
+        .route-step {
+            padding: 3px 8px;
+            background: rgba(68, 136, 255, 0.3);
+            border: 1px solid #4488ff;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+        
+        .route-step.current {
+            background: rgba(255, 136, 68, 0.4);
+            border-color: #ff8844;
+            font-weight: bold;
+            animation: currentPulse 1s infinite;
+        }
+        
+        @keyframes currentPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .route-arrow {
+            color: #44ff88;
+        }
+        
+        .evacuation-btn {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: linear-gradient(45deg, #4488ff, #44ff88);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .evacuation-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(68, 136, 255, 0.5);
+        }
+        
+        .evacuation-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .safe-badge {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: linear-gradient(45deg, #10b981, #059669);
+            border: 2px solid #10b981;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .unknown-badge {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: rgba(128, 128, 128, 0.3);
+            border: 2px solid #888;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .movement-progress {
+            margin-top: 8px;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .movement-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff8844, #44ff88);
+            transition: width 0.3s;
+            animation: shimmer 1s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+        
+        .btn-fire {
+            background: linear-gradient(45deg, #ff4444, #cc0000);
+            color: white;
+        }
+        
+        .btn-safe {
+            background: linear-gradient(45deg, #44ff88, #00cc44);
+            color: black;
+        }
+        
+        .btn-emergency {
+            background: linear-gradient(45deg, #ff8844, #ff4444);
+            color: white;
+            grid-column: span 2;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .person-icon {
+            animation: bounce 0.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-5px); }
+        }
+        
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔥 Fire Detection System</h1>
+            <p>Real-time monitoring with Live Person Movement Tracking</p>
+        </header>
+        
+        <div class="stats">
+            <div class="stat-card fire">
+                <div class="stat-label">🔥 Active Fires</div>
+                <div class="stat-number" id="fireCount">0</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-label">⚠️ People in Danger</div>
+                <div class="stat-number" id="dangerCount">0</div>
+            </div>
+            <div class="stat-card safe">
+                <div class="stat-label">🏃 People Evacuating</div>
+                <div class="stat-number" id="evacuatingCount">0</div>
+            </div>
+        </div>
+        
+        <div class="main-grid">
+            <div class="floor-plan">
+                <h2>House Floor Plan with Escape Routes</h2>
+                <svg class="house-svg" id="houseSvg" viewBox="0 0 850 700"></svg>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #10b981;"></div>
+                        <span>Safe Room</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f97316;"></div>
+                        <span>Fire (No Person)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #dc2626;"></div>
+                        <span>Fire + Person</span>
+                    </div>
+                    <div class="legend-item">
+                        <span style="color: #44ff88;">━━━</span>
+                        <span>Escape Route</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #065f46; border-color: #10b981;"></div>
+                        <span>🚪 EXIT (2 Total)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span style="font-size: 1.2em;">🏃</span>
+                        <span>Moving Person</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="card">
+                    <h3>🚨 Active Alerts</h3>
+                    <div id="alertsList">
+                        <p style="text-align: center; opacity: 0.5;">No active fires</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>👥 People & Evacuation</h3>
+                    <div id="peopleList">
+                        <p style="text-align: center; opacity: 0.5;">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <h2>🎮 Control Panel</h2>
+            <div class="button-group">
+                <button class="btn-fire" onclick="updateRoom('Kitchen', true, false)">
+                    🔥 Fire in Kitchen
+                </button>
+                <button class="btn-safe" onclick="updateRoom('Kitchen', false, false)">
+                    ✅ Clear Kitchen
+                </button>
+                
+                <button class="btn-fire" onclick="updateRoom('Living Room', true, false)">
+                    🔥 Fire in Living Room
+                </button>
+                <button class="btn-safe" onclick="updateRoom('Living Room', false, false)">
+                    ✅ Clear Living Room
+                </button>
+                
+                <button class="btn-fire" onclick="updateRoom('Bedroom 1', true, false)">
+                    🔥 Fire in Bedroom 1
+                </button>
+                <button class="btn-safe" onclick="updateRoom('Bedroom 1', false, false)">
+                    ✅ Clear Bedroom 1
+                </button>
+                
+                <button class="btn-fire" onclick="updateRoom('Bedroom 2', true, false)">
+                    🔥 Fire in Bedroom 2
+                </button>
+                <button class="btn-safe" onclick="updateRoom('Bedroom 2', false, false)">
+                    ✅ Clear Bedroom 2
+                </button>
+
+                <button class="btn-fire" onclick="updateRoom('Backyard', true, false)">
+                    🔥 Fire in Backyard
+                </button>
+                <button class="btn-safe" onclick="updateRoom('Backyard', false, false)">
+                    ✅ Clear Backyard
+                </button>
+                
+                <button class="btn-safe" onclick="clearAllFires()">
+                    ✅ Clear ALL Fires
+                </button>
+                <button class="btn-emergency" onclick="simulateEmergency()">
+                    ⚠️ SIMULATE FULL EMERGENCY
+                </button>
+                
+                <button class="btn-safe" onclick="resetPeopleLocations()" style="grid-column: span 2;">
+                    🔄 Reset People to Original Rooms
+                </button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <strong>System Status:</strong> Connected |
+            <strong>API:</strong> http://localhost:5000 |
+            <strong>Update Interval:</strong> 5 seconds per room |
+            <strong>Exits:</strong> 🚪 Backyard & Living Room Exit
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        const EXIT_ROOMS = ['Backyard', 'EXIT_LIVING_ROOM'];
+        
+        // Updated layout matching the image
+        const roomPositions = {
+            'Wash Room 1': { x: 20, y: 20, width: 80, height: 100 },
+            'Bedroom 1': { x: 110, y: 20, width: 200, height: 250 },
+            'Backyard': { x: 320, y: 20, width: 240, height: 140 },
+            'Bedroom 2': { x: 570, y: 20, width: 200, height: 250 },
+            'Wash Room 2': { x: 780, y: 20, width: 80, height: 100 },
+            'Kitchen': { x: 320, y: 170, width: 240, height: 140 },
+            'Living Room': { x: 20, y: 320, width: 650, height: 240 },
+            'EXIT_LIVING_ROOM': { x: 680, y: 350, width: 180, height: 180 }
+        };
+        
+        const roomCenters = {};
+        for (let room in roomPositions) {
+            const pos = roomPositions[room];
+            roomCenters[room] = {
+                x: pos.x + pos.width / 2,
+                y: pos.y + pos.height / 2
+            };
+        }
+        
+        let currentPeople = [];
+        let currentRooms = [];
+        let currentRoutes = {};
+        
+        async function fetchData() {
+            try {
+                const [roomsRes, peopleRes, alertsRes, routesRes] = await Promise.all([
+                    fetch(`${API_URL}/rooms`),
+                    fetch(`${API_URL}/people`),
+                    fetch(`${API_URL}/alerts`),
+                    fetch(`${API_URL}/escape-routes`)
+                ]);
+                
+                currentRooms = await roomsRes.json();
+                currentPeople = await peopleRes.json();
+                const alerts = await alertsRes.json();
+                currentRoutes = await routesRes.json();
+                
+                updateStats(currentRooms, currentPeople);
+                drawFloorPlan(currentRooms, currentRoutes, currentPeople);
+                updateAlerts(alerts);
+                updatePeopleList(currentPeople);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+        
+        function updateStats(rooms, people) {
+            const fireCount = rooms.filter(r => r.fire).length;
+            const dangerCount = people.filter(p => p.status === 'Not Safe' && !p.is_moving).length;
+            const evacuatingCount = people.filter(p => p.is_moving).length;
+            
+            document.getElementById('fireCount').textContent = fireCount;
+            document.getElementById('dangerCount').textContent = dangerCount;
+            document.getElementById('evacuatingCount').textContent = evacuatingCount;
+        }
+        
+        function drawFloorPlan(rooms, routes, people) {
+            const svg = document.getElementById('houseSvg');
+            svg.innerHTML = '';
+            
+            const roomsMap = {};
+            rooms.forEach(room => {
+                roomsMap[room.room_id] = room;
+            });
+            
+            // Draw escape routes first
+            for (let roomId in routes) {
+                const route = routes[roomId];
+                if (route.path && route.path.length > 1 && route.safe) {
+                    drawEscapePath(svg, route.path);
+                }
+            }
+            
+            // Draw all rooms
+            for (let roomId in roomPositions) {
+                const pos = roomPositions[roomId];
+                const room = roomsMap[roomId];
+                
+                if (!room) continue;
+                
+                let fillColor = '#1a472a';
+                let strokeColor = '#10b981';
+                
+                if (room.fire && room.person) {
+                    fillColor = '#7f1d1d';
+                    strokeColor = '#dc2626';
+                } else if (room.fire) {
+                    fillColor = '#7c2d12';
+                    strokeColor = '#f97316';
+                } else if (room.person) {
+                    fillColor = '#1e3a8a';
+                    strokeColor = '#3b82f6';
+                }
+                
+                // Special styling for exits
+                if (EXIT_ROOMS.includes(roomId)) {
+                    fillColor = '#065f46';
+                    strokeColor = '#22c55e';
+                }
+                
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', pos.x);
+                rect.setAttribute('y', pos.y);
+                rect.setAttribute('width', pos.width);
+                rect.setAttribute('height', pos.height);
+                rect.setAttribute('fill', fillColor);
+                rect.setAttribute('stroke', strokeColor);
+                rect.setAttribute('stroke-width', EXIT_ROOMS.includes(roomId) ? '3' : '2');
+                rect.setAttribute('rx', '5');
+                svg.appendChild(rect);
+                
+                // Room label
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', pos.x + pos.width / 2);
+                text.setAttribute('y', pos.y + pos.height / 2 - 15);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', 'white');
+                text.setAttribute('font-size', '14');
+                text.setAttribute('font-weight', 'bold');
+                
+                if (roomId === 'EXIT_LIVING_ROOM') {
+                    text.textContent = 'EXIT';
+                    const subtext = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    subtext.setAttribute('x', pos.x + pos.width / 2);
+                    subtext.setAttribute('y', pos.y + pos.height / 2 + 5);
+                    subtext.setAttribute('text-anchor', 'middle');
+                    subtext.setAttribute('fill', 'white');
+                    subtext.setAttribute('font-size', '11');
+                    subtext.textContent = '(Living Room)';
+                    svg.appendChild(subtext);
+                } else if (roomId === 'Backyard') {
+                    text.textContent = 'BACKYARD';
+                    const subtext = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    subtext.setAttribute('x', pos.x + pos.width / 2);
+                    subtext.setAttribute('y', pos.y + pos.height / 2 + 5);
+                    subtext.setAttribute('text-anchor', 'middle');
+                    subtext.setAttribute('fill', 'white');
+                    subtext.setAttribute('font-size', '11');
+                    subtext.textContent = '(EXIT)';
+                    svg.appendChild(subtext);
+                } else {
+                    text.textContent = roomId;
+                }
+                svg.appendChild(text);
+                
+                // Fire icon
+                let statusY = pos.y + pos.height / 2 + 30;
+                if (room.fire) {
+                    const fireIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    fireIcon.setAttribute('x', pos.x + pos.width / 2 - 10);
+                    fireIcon.setAttribute('y', statusY);
+                    fireIcon.setAttribute('font-size', '24');
+                    fireIcon.textContent = '🔥';
+                    svg.appendChild(fireIcon);
+                }
+                
+                // Exit door icon
+                if (EXIT_ROOMS.includes(roomId)) {
+                    const doorIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    doorIcon.setAttribute('x', pos.x + pos.width / 2 - 12);
+                    doorIcon.setAttribute('y', pos.y + pos.height / 2 + (roomId === 'Backyard' ? 30 : 40));
+                    doorIcon.setAttribute('font-size', '28');
+                    doorIcon.textContent = '🚪';
+                    svg.appendChild(doorIcon);
+                }
+                
+                // Distance to exit
+                const route = routes[roomId];
+                if (route && route.distance !== null && !EXIT_ROOMS.includes(roomId)) {
+                    const distText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    distText.setAttribute('x', pos.x + pos.width / 2);
+                    distText.setAttribute('y', pos.y + pos.height - 8);
+                    distText.setAttribute('text-anchor', 'middle');
+                    distText.setAttribute('fill', route.safe ? '#44ff88' : '#ff4444');
+                    distText.setAttribute('font-size', '11');
+                    distText.setAttribute('font-weight', 'bold');
+                    
+                    if (route.safe) {
+                        const exitName = route.exit_used === 'EXIT_LIVING_ROOM' ? 'Living Exit' : 'Backyard';
+                        distText.textContent = `→ ${exitName}: ${route.distance} steps`;
+                    } else {
+                        distText.textContent = 'NO EXIT!';
+                    }
+                    svg.appendChild(distText);
+                }
+            }
+            
+            // Draw moving people
+            people.forEach(person => {
+                if (person.is_moving && person.current_position) {
+                    drawMovingPerson(svg, person);
+                }
+            });
+        }
+        
+        function drawMovingPerson(svg, person) {
+            const currentPos = roomCenters[person.current_position];
+            const targetPos = person.target_room ? roomCenters[person.target_room] : null;
+            
+            if (!currentPos) return;
+            
+            let x = currentPos.x;
+            let y = currentPos.y;
+            
+            if (targetPos && person.movement_progress) {
+                const progress = person.movement_progress / 100;
+                x = currentPos.x + (targetPos.x - currentPos.x) * progress;
+                y = currentPos.y + (targetPos.y - currentPos.y) * progress;
+            }
+            
+            const personGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            personGroup.setAttribute('class', 'person-icon');
+            
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', x);
+            circle.setAttribute('cy', y);
+            circle.setAttribute('r', '18');
+            circle.setAttribute('fill', '#ff8844');
+            circle.setAttribute('stroke', '#44ff88');
+            circle.setAttribute('stroke-width', '3');
+            personGroup.appendChild(circle);
+            
+            const personText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            personText.setAttribute('x', x);
+            personText.setAttribute('y', y + 7);
+            personText.setAttribute('text-anchor', 'middle');
+            personText.setAttribute('font-size', '20');
+            personText.textContent = '🏃';
+            personGroup.appendChild(personText);
+            
+            const nameText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            nameText.setAttribute('x', x);
+            nameText.setAttribute('y', y - 25);
+            nameText.setAttribute('text-anchor', 'middle');
+            nameText.setAttribute('fill', 'white');
+            nameText.setAttribute('font-size', '12');
+            nameText.setAttribute('font-weight', 'bold');
+            nameText.textContent = person.name;
+            personGroup.appendChild(nameText);
+            
+            svg.appendChild(personGroup);
+        }
+        
+        function drawEscapePath(svg, path) {
+            for (let i = 0; i < path.length - 1; i++) {
+                const from = roomCenters[path[i]];
+                const to = roomCenters[path[i + 1]];
+                
+                if (!from || !to) continue;
+                
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', from.x);
+                line.setAttribute('y1', from.y);
+                line.setAttribute('x2', to.x);
+                line.setAttribute('y2', to.y);
+                line.setAttribute('stroke', '#44ff88');
+                line.setAttribute('stroke-width', '4');
+                line.setAttribute('stroke-dasharray', '8,5');
+                line.setAttribute('opacity', '0.7');
+                svg.appendChild(line);
+                
+                const angle = Math.atan2(to.y - from.y, to.x - from.x);
+                const arrowSize = 10;
+                const arrowX = to.x - Math.cos(angle) * 25;
+                const arrowY = to.y - Math.sin(angle) * 25;
+                
+                const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const points = [
+                    [arrowX, arrowY],
+                    [arrowX - arrowSize * Math.cos(angle - Math.PI / 6), 
+                     arrowY - arrowSize * Math.sin(angle - Math.PI / 6)],
+                    [arrowX - arrowSize * Math.cos(angle + Math.PI / 6), 
+                     arrowY - arrowSize * Math.sin(angle + Math.PI / 6)]
+                ];
+                arrow.setAttribute('points', points.map(p => p.join(',')).join(' '));
+                arrow.setAttribute('fill', '#44ff88');
+                arrow.setAttribute('opacity', '0.9');
+                svg.appendChild(arrow);
+            }
+        }
+        
+        function updateAlerts(alerts) {
+            const alertsList = document.getElementById('alertsList');
+            
+            if (alerts.length === 0) {
+                alertsList.innerHTML = '<p style="text-align: center; opacity: 0.5;">No active fires</p>';
+                return;
+            }
+            
+            alertsList.innerHTML = alerts.map(alert => `
+                <div class="alert-item">
+                    <strong>🔥 ${alert.room_id}</strong>
+                    ${alert.person ? '<br>⚠️ PERSON PRESENT!' : ''}
+                    <br><small>${new Date(alert.updated_at).toLocaleTimeString()}</small>
+                </div>
+            `).join('');
+        }
+        
+        function updatePeopleList(people) {
+            const peopleList = document.getElementById('peopleList');
+            
+            if (people.length === 0) {
+                peopleList.innerHTML = '<p style="text-align: center; opacity: 0.5;">No people tracked</p>';
+                return;
+            }
+            
+            peopleList.innerHTML = people.map(person => {
+                const isSafe = person.status === 'Safe';
+                const isMoving = person.is_moving;
+                const isOutside = EXIT_ROOMS.includes(person.room_id);
+                const isUnknown = !person.room_id || person.room_id === 'Unknown';
+                const route = person.escape_route;
+                
+                let routeHTML = '';
+                if (!isUnknown && !isOutside) {
+                    if (route && route.safe && route.path && route.path.length > 1) {
+                        const displayPath = isMoving && person.remaining_path ? 
+                            [person.current_position, ...person.remaining_path] : route.path;
+                        
+                        routeHTML = `
+                            <div class="escape-route">
+                                <strong>Route to Exit:</strong>
+                                <div class="route-path">
+                                    ${displayPath.map((step, idx) => {
+                                        const isCurrent = isMoving && step === person.current_position;
+                                        let stepName = step;
+                                        if (step === 'EXIT_LIVING_ROOM') stepName = 'EXIT (Living)';
+                                        else if (step === 'Backyard') stepName = 'EXIT (Backyard)';
+                                        return `
+                                            <span class="route-step ${isCurrent ? 'current' : ''}">${stepName}</span>
+                                            ${idx < displayPath.length - 1 ? '<span class="route-arrow">→</span>' : ''}
+                                        `;
+                                    }).join('')}
+                                </div>
+                                <div style="margin-top: 5px; font-size: 0.85em;">
+                                    ${isMoving ? `Remaining: ${person.remaining_path ? person.remaining_path.length : 0} steps (5s each)` : `Distance: ${route.distance} steps`}
+                                </div>
+                            </div>
+                        `;
+                    } else if (!route.safe && route.path === null) {
+                        routeHTML = `<div class="escape-route"><span style="color: #ff4444;">⚠️ NO SAFE EXIT!</span></div>`;
+                    }
+                } else if (isOutside) {
+                    routeHTML = `<div class="escape-route"><span style="color: #44ff88;">✅ Safe - Outside</span></div>`;
+                }
+                
+                // Harry should not have evacuation button
+                const canEvacuate = person.name !== 'Harry' && !isMoving && !isOutside && !isUnknown &&
+                                   person.room_id && 
+                                   route && route.safe && route.path && route.path.length > 1;
+                
+                let className = 'person-item ';
+                if (isMoving) className += 'moving';
+                else if (isOutside) className += 'outside';
+                else if (isUnknown) className += 'unknown';
+                else if (isSafe) className += 'safe';
+                else className += 'danger';
+                
+                return `
+                    <div class="${className}">
+                        <div class="person-header">
+                            <strong>${person.name}</strong>
+                            <span>${isMoving ? '🏃' : (isOutside ? '✅' : (isUnknown ? '❓' : (isSafe ? '✅' : '⚠️')))}</span>
+                        </div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">
+                            Location: ${person.current_position || person.room_id || 'Unknown'}
+                        </div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">
+                            Status: ${isMoving ? 'Evacuating' : (isOutside ? 'Safe (Outside)' : (isUnknown ? 'Unknown Location' : person.status))}
+                        </div>
+                        ${routeHTML}
+                        ${isMoving ? `
+                            <div class="movement-progress">
+                                <div class="movement-bar" style="width: ${person.movement_progress || 0}%"></div>
+                            </div>
+                            <div style="font-size: 0.8em; margin-top: 5px; text-align: center; color: #ff8844;">
+                                Moving to: ${person.target_room === 'EXIT_LIVING_ROOM' ? 'EXIT (Living)' : (person.target_room === 'Backyard' ? 'EXIT (Backyard)' : person.target_room || 'Exit')}
+                            </div>
+                        ` : ''}
+                        ${isOutside ? `
+                            <div class="safe-badge">
+                                ✅ SAFE - Already Outside
+                            </div>
+                        ` : isUnknown ? `
+                            <div class="unknown-badge">
+                                ❓ Location Unknown
+                            </div>
+                        ` : canEvacuate ? `
+                            <button class="evacuation-btn" 
+                                    onclick="startEvacuation(${person.person_id})">
+                                🚨 Start Evacuation
+                            </button>
+                        ` : !canEvacuate && person.name !== 'Harry' && !isMoving ? `
+                            <button class="evacuation-btn" disabled>
+                                ${route && !route.safe ? '⚠️ No Safe Route' : '🚨 Cannot Evacuate'}
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function startEvacuation(personId) {
+            try {
+                const response = await fetch(`${API_URL}/start-evacuation/${personId}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(`Started evacuation for person ${personId}:`, result.escape_path);
+                    fetchData();
+                } else {
+                    const error = await response.json();
+                    console.error('Error starting evacuation:', error);
+                    alert(error.error || 'Failed to start evacuation');
+                }
+            } catch (error) {
+                console.error('Error starting evacuation:', error);
+            }
+        }
+        
+        async function updateRoom(roomId, fire, person) {
+            try {
+                const response = await fetch(`${API_URL}/update-room`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ room_id: roomId, fire, person })
+                });
+                
+                if (response.ok) {
+                    fetchData();
+                }
+            } catch (error) {
+                console.error('Error updating room:', error);
+            }
+        }
+        
+        async function clearAllFires() {
+            try {
+                const response = await fetch(`${API_URL}/clear-all-fires`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    fetchData();
+                }
+            } catch (error) {
+                console.error('Error clearing fires:', error);
+            }
+        }
+        
+        async function simulateEmergency() {
+            try {
+                const response = await fetch(`${API_URL}/simulate-emergency`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    fetchData();
+                }
+            } catch (error) {
+                console.error('Error simulating emergency:', error);
+            }
+        }
+
+        async function resetPeopleLocations() {
+            try {
+                const response = await fetch(`${API_URL}/reset-people-locations`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    fetchData();
+                }
+            } catch (error) {
+                console.error('Error resetting locations:', error);
+            }
+        }
+        
+        // Initial load and refresh every 500ms for smooth updates
+        fetchData();
+        setInterval(fetchData, 500);
+    </script>
+</body>
+</html>
